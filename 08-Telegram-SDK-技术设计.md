@@ -336,7 +336,87 @@ public static class TelegramChatExtensions
 ### 6.3 后台任务复用
 连接维护/心跳走框架 `BaseBackgroundTask`；更新游标节流写库走后台任务。
 
-## 7. 与框架关系 & Core 工具
+## 7. 增强功能设计（已采纳 6 项）
+
+> 低成本高收益功能，业务方已确认全部采纳。
+
+### 7.1 统一通知推送 API（`INotificationService`）
+
+```csharp
+public interface INotificationService
+{
+    Task<string?> SendTextAsync(string accountId, string peerId, string content, CancellationToken ct = default);
+    Task<string?> SendImageAsync(string accountId, string peerId, ImageMedia media, CancellationToken ct = default);
+    Task<string?> SendReplyAsync(string accountId, string peerId, string replyToMessageId, string content, CancellationToken ct = default);
+}
+// 实现：经发送队列（§7.2）路由到账号对应适配器；业务系统一行调用即可主动推送（订单通知/告警等）
+```
+Phase 1 · 低成本高收益（两个系统都要主动通知）。
+
+### 7.2 内置发送队列 + 频率控制
+
+```csharp
+public interface ISendQueue { Task EnqueueAsync(QueuedSendRequest request, CancellationToken ct); }
+
+public class SendQueueOptions
+{
+    public int MaxConcurrencyPerAccount { get; set; } = 10;
+    public TimeSpan RateLimitWindow { get; set; } = TimeSpan.FromSeconds(1);
+    public int MaxPerWindowPerAccount { get; set; } = 30;   // Telegram 频率硬限制
+    public int MaxRetries { get; set; } = 3;                // 复用 RetryUtil
+}
+```
+- 按账号分桶限速；失败指数退避重试；同 peer 保序
+- 后台消费（框架 `BaseBackgroundTask`）；队列积压纳入健康检查（§7.5）
+Phase 1 · 防踩 Telegram 限速坑。
+
+### 7.3 Mock 适配器（开发/测试）
+
+```csharp
+public class MockTelegramAdapter : ITelegramAdapter { /* 内存收发、可注入脚本、离线模拟 */ }
+public static IServiceCollection AddTelegramMockAdapter(this IServiceCollection services);
+```
+- 无网开发 + 单测不触网；业务系统与 SDK 测试共用
+Phase 1 · 提升 DX。
+
+### 7.4 内置统一 Webhook 端点
+
+```csharp
+[ApiController, Route("/telegram/webhook/{token}")]
+public class TelegramWebhookController : ControllerBase
+{
+    // 按 token 识别账号 → 验签（WebhookSignatureValidator）→ 交 BotApiAdapter → PullAsync 归一化
+}
+```
+- 一个端点服务所有 Bot（商家平台多账号）；框架 Controller 约定自动装配
+- 路径与 secret 走 `Chat.Bot` 配置节
+Phase 1。
+
+### 7.5 账号健康度接入框架健康检查
+
+```csharp
+public class TelegramAccountHealthCheck : IHealthCheck
+{
+    // 各账号连接状态 / 重连次数 / 队列积压 → 汇总进 /health
+}
+```
+- 复用框架 HealthCheckSetup；平台运维看板一眼看多账号在线状态
+Phase 1/2。
+
+### 7.6 通用消息中间件
+
+```csharp
+public interface ITelegramMiddleware
+{
+    Task<TelegramResponseMessageBase?> InvokeAsync(
+        TelegramRequestMessageBase message, MessagePipelineDelegate next, CancellationToken ct);
+}
+// 内置：SensitiveWordMiddleware（敏感词）/ AuditMiddleware（审计）/ KeywordReplyMiddleware（关键词回复）
+// 注册顺序可配，复用 Handler 管道钩子（OnExecuting/OnExecuted）
+```
+Phase 2。
+
+## 8. 与框架关系 & Core 工具
 
 - **仓库平级、依赖下级**：`Sb.Framework.Chat` 是基座模块，依赖 `Sb.Framework.Core/Models` 基础设施，框架不反向依赖。
 - **复用框架基础设施**：FreeSql+IModuleInitializer 建表、ICacheService、AppSettings+IOptions、Serilog、[AutoDependencyInjection]、AppTime(SB0001)、BaseBackgroundTask、Result。
@@ -348,7 +428,7 @@ public static class TelegramChatExtensions
   - `WebhookSignatureValidator`（P1）：HMAC 验签
 - **留在 SDK 的领域内容**：消息模型、MessageHandler、ChatContext/防撤回、通道适配器、账号会话、`chat_*` 表实体。
 
-## 8. 能力矩阵（FEATURES.md 雏形）
+## 9. 能力矩阵（FEATURES.md 雏形）
 
 | 能力 | Bot | Personal | 阶段 |
 |------|-----|----------|------|
@@ -357,23 +437,32 @@ public static class TelegramChatExtensions
 | 撤回标记+内容保留 | — | ✅ | Phase1 |
 | 历史补拉/会话同步 | — | ✅ | Phase1 |
 | Mini Apps / Web Apps | ✅ | — | Phase1 |
+| 统一通知推送 INotificationService | ✅ | ✅ | Phase1 |
+| 内置发送队列+频率控制 | ✅ | ✅ | Phase1 |
+| Mock 适配器（开发/测试） | ✅ | ✅ | Phase1 |
+| 内置统一 Webhook 端点 | ✅ | — | Phase1 |
+| 账号健康度 → /health | ✅ | ✅ | Phase1 |
 | 支付（Stars/Payments） | 🚧 | — | Phase2 |
 | 视频/语音/文件 | 🚧 | 🚧 | Phase2 |
+| 通用消息中间件（敏感词/审计/关键词） | 🚧 | 🚧 | Phase2 |
 | 平台 H5 双载体入口 | ✅ | — | Phase1 |
 | 已读/在线/表情反应 | ❌ | ❌ | 未规划 |
 | 多设备/会话多开 | ❌ | ❌ | 未规划 |
 
 > 功能缺口文档化是硬要求——"以为支持了其实没有"是禁忌。此表随版本演进维护于 SDK 仓库 `FEATURES.md`。
 
-## 9. 实施顺序
+## 10. 实施顺序
 
 1. **Core 工具先行**：`RetryUtil` / `SecurityUtil.MaskSecret` / `IdempotencyUtil` / `RateLimiterUtil` / `WebhookSignatureValidator`（进 sb-framework）
 2. **SDK 核心** `Sb.Framework.Chat`：消息模型 → MessageHandler → ChatContext/Container → AccountContainer → 存储表
-3. **MtProtoAdapter 生产化**（会话/同步/防撤回/媒体）
-4. **BotApiAdapter**（吸收现有分发逻辑）
-5. **业务平台层**（商家 SaaS / 内部系统，P0 最小闭环）
+3. **增强基础**：`INotificationService` + 发送队列（§7.1/7.2）+ Mock 适配器（§7.3）
+4. **MtProtoAdapter 生产化**（会话/同步/防撤回/媒体）
+5. **BotApiAdapter + 统一 Webhook 端点**（§7.4）
+6. **健康检查接入**（§7.5）
+7. **业务平台层**（商家 SaaS / 内部系统，P0 最小闭环）
+8. **Phase 2**：媒体补齐 / 群聊频道 / 转发 / 支付 / 通用中间件（§7.6）
 
-## 10. 风险与取舍
+## 11. 风险与取舍
 
 | 风险 | 对策 |
 |------|------|
