@@ -276,6 +276,20 @@ FreeSql+IModuleInitializer 建表 / ICacheService / AppSettings+IOptions / Seril
 
 **版本治理：** SDK 版本独立，依赖框架包用版本下限（`[0.4.6,)`）；框架升级 → SDK 重新编译对齐（吸取 CHANGELOG 0.4.2/0.4.3 程序集版本事故教训）；同源发布 nuget.saibo.club。
 
+### 12.1 抽象到 SB.Framework.Core 的通用工具（已规划）
+
+SDK 需要的**通用型功能**抽象进 Core（`SB.Framework.Core/Util/`），SDK 与其它系统共用：
+
+| 工具 | 职责 | 紧迫 |
+|------|------|------|
+| `RetryUtil` | 指数退避+抖动重试（重连/webhook 投递/HTTP/消息补偿） | P0 |
+| `SecurityUtil.MaskSecret()` | 通用敏感值脱敏（token/手机号/API key/密码），扩展现有 SecurityUtil | P0 |
+| `IdempotencyUtil` | 幂等去重（updateId/消息/Webhook 重复投递） | P1 |
+| `RateLimiterUtil` | 统一限流入口（封装 System.Threading.RateLimiting） | P1 |
+| `WebhookSignatureValidator` | HMAC 验签（平台 webhook 端点安全） | P1 |
+
+**留在 SDK 的（Telegram 特定，不进 Core）**：消息模型、MessageHandler、ChatContext/防撤回、通道适配器、账号会话、`chat_*` 表实体。
+
 ## 13. 下一步
 
 需求收敛 → 细化接口签名 → 定稿 → 落实现（先 MtProtoAdapter 生产化 + SDK 核心）。
