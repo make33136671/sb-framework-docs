@@ -239,6 +239,43 @@ interface ITelegramAdapter
 - ⏳ 复刻范围后续阶段细节清单
 - ⏳ 网页回复层职责边界（SDK 提供 API，网页 UI 归业务层）
 
-## 12. 下一步
+## 12. 与 sb-framework 家族的关系（已规划）
+
+**关系定位：仓库平级，依赖下级。**
+- 仓库/分类平级：`sb-framework-chat` 与 `sb-framework` 是 `saibo/framework/` 兄弟仓库；`Sb.Framework.Chat` 与 `Sb.Framework.Core/Services/WebApi` 同为基座模块（规范 §3）
+- 依赖下级：SDK 依赖框架核心（Core/Models）基础设施；框架绝不反向依赖 SDK（单向，防循环）
+- 性质变化：旧 chat 仓库是协议中立独立库（不依赖框架）；新 SDK 是**框架依赖模块**（接存储/缓存/配置/日志/DI）
+
+**依赖拓扑：**
+```
+sb-framework（Core/Models/Services/WebApi NuGet）
+    ↑ 仅基础设施依赖
+Sb.Framework.Chat（无第三方协议依赖）
+    ↑
+Sb.Framework.Chat.Telegram（+Telegram.Bot）/ Sb.Framework.Chat.Telegram.MtProto（+WTelegramClient）
+    ↑ 按需引用
+业务系统（商家平台/内部系统/PM/ERP/CRM）
+```
+
+**业务系统引用：**
+```xml
+<PackageReference Include="Sb.Framework.WebApi" Version="0.4.14" />
+<PackageReference Include="Sb.Framework.Chat" Version="0.1.0-preview.1" />
+<PackageReference Include="Sb.Framework.Chat.Telegram" Version="0.1.0-preview.1" />
+<PackageReference Include="Sb.Framework.Chat.Telegram.MtProto" Version="0.1.0-preview.1" />
+```
+```csharp
+builder.AddSbFramework();
+builder.AddTelegramChat();          // SDK 核心装配
+builder.AddTelegramBotAdapter();    // Bot 通道（按需）
+builder.AddTelegramMtProtoAdapter();// 个人号通道（按需）
+```
+
+**重复功能抽象：SDK 复用框架基础设施，不复用框架业务抽象。**
+FreeSql+IModuleInitializer 建表 / ICacheService / AppSettings+IOptions / Serilog / [AutoDependencyInjection] / AppTime(SB0001) / BaseBackgroundTask / Result —— 全部复用框架；消息模型/Handler 管道/通道适配器为 SDK 自有。
+
+**版本治理：** SDK 版本独立，依赖框架包用版本下限（`[0.4.6,)`）；框架升级 → SDK 重新编译对齐（吸取 CHANGELOG 0.4.2/0.4.3 程序集版本事故教训）；同源发布 nuget.saibo.club。
+
+## 13. 下一步
 
 需求收敛 → 细化接口签名 → 定稿 → 落实现（先 MtProtoAdapter 生产化 + SDK 核心）。
