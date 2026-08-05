@@ -14,6 +14,8 @@
 | [04-sb-framework-chat-聊天框架.md](./04-sb-framework-chat-聊天框架.md) | IM 平台抽象层（SB.Chat + Telegram 适配器）分析 |
 | [05-新项目开发指南.md](./05-新项目开发指南.md) | **基于框架从零搭建新项目的完整操作指南（后端+前端）** |
 | [06-Chat-接入指南.md](./06-Chat-接入指南.md) | 在派生应用内接入 SB.Chat 与 Telegram 的指南 |
+| [07-Telegram-SDK-设计草案.md](./07-Telegram-SDK-设计草案.md) | **Telegram 统一 SDK 决策文档**（需求/边界/阶段/优先级，WIP） |
+| [08-Telegram-SDK-技术设计.md](./08-Telegram-SDK-技术设计.md) | **Telegram 统一 SDK 技术设计**（接口签名/存储表/时序/配置） |
 
 ## 框架家族速览
 

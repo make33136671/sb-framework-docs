@@ -3,6 +3,7 @@
 > 状态：**正式设计 v1 草案（WIP）**。全局需求收敛中，随讨论修订。
 > 仓库归属：并入 `sb-framework-chat`；命名照 `naming-conventions.md` §3：`Sb.Framework.Chat.*`。
 > 优先级定义：**P0 必须·紧迫**（Phase 1 缺了跑不起来）/ **P1 必须·重要**（完整系统必需，Phase 2）/ **P2 可选·增强**（按需）。
+> **技术细节见《08-Telegram-SDK-技术设计.md》**（接口签名 / 存储表 / 时序 / 配置）。
 
 ## 0. 定位
 
