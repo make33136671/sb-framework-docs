@@ -1,5 +1,10 @@
 # 04 sb-framework-chat 聊天框架分析
 
+> ⚠️ **本架构已被取代**：`SB.Chat / SB.Chat.Telegram` 经评审确定**弃用**，统一 SDK 见
+> 《[07-Telegram-SDK-设计草案.md](./07-Telegram-SDK-设计草案.md)》（决策）与
+> 《[08-Telegram-SDK-技术设计.md](./08-Telegram-SDK-技术设计.md)》（技术设计）。
+> 本文保留为旧实现（当前仓库代码）的分析记录，仅作历史参考，**不要据此开发新功能**。
+
 > 位置：`D:\projects\saibo\framework\sb-framework-chat`
 > **定位**：不是可运行的应用，而是 sb-framework 家族中的 **IM 平台抽象层组件**，采用「契约 + 适配器」二分结构，以独立 NuGet 包形式被派生应用消费，与后端核心**无代码耦合**（仅共享治理规范与 NuGet feed）。
 
