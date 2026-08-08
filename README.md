@@ -16,6 +16,7 @@
 | [06-Chat-接入指南.md](./06-Chat-接入指南.md) | Telegram 统一 SDK 接入指引（旧接入方式已废弃） |
 | [07-Telegram-SDK-设计草案.md](./07-Telegram-SDK-设计草案.md) | **Telegram 统一 SDK 决策文档**（需求/边界/阶段/优先级，WIP） |
 | [08-Telegram-SDK-技术设计.md](./08-Telegram-SDK-技术设计.md) | **Telegram 统一 SDK 技术设计**（接口签名/存储表/时序/配置） |
+| [09-派生项目启动无限等待问题与解决方案.md](./09-派生项目启动无限等待问题与解决方案.md) | 启动卡死/无限等待根因与解决方案（dotnet run 私有源/WMI 分离启动/Serilog） |
 
 ## 框架家族速览
 
